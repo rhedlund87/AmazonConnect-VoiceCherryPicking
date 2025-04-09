@@ -33,7 +33,7 @@
         "conditions": [],
         "conditionMetadata": [
           {
-            "id": "99639482-271a-4b8d-b343-59c15f3f9513",
+            "id": "8c93d3de-c745-42df-aed5-671307e44df0",
             "operator": {
               "name": "Equals",
               "value": "Equals",
@@ -54,9 +54,10 @@
           "x": 311.2,
           "y": -231.2
         },
+        "conditions": [],
         "conditionMetadata": [
           {
-            "id": "7128d352-22a5-4324-96c8-f2a4734f8567",
+            "id": "9994b622-835a-4cd2-b296-ffb62cd629bf",
             "operator": {
               "name": "Equals",
               "value": "Equals",
@@ -99,9 +100,10 @@
           "x": -29.6,
           "y": 229.6
         },
+        "conditions": [],
         "conditionMetadata": [
           {
-            "id": "bebba696-789d-49ac-baf3-b48eb3877772",
+            "id": "d75f12d6-31b0-4d5f-873a-8916ad3c96e8",
             "operator": {
               "name": "Equals",
               "value": "Equals",
@@ -146,9 +148,10 @@
           "x": -334.4,
           "y": 258.4
         },
+        "conditions": [],
         "conditionMetadata": [
           {
-            "id": "89d5d4f5-d779-47e6-a515-e4958a46d558",
+            "id": "f8b069c7-f693-4172-a4e2-16c29037187e",
             "operator": {
               "name": "Equals",
               "value": "Equals",
@@ -170,13 +173,6 @@
           }
         },
         "dynamicMetadata": {}
-      },
-      "62464436-d27a-4647-bff0-d43d61f40d9d": {
-        "position": {
-          "x": 884.8,
-          "y": 579.2
-        },
-        "dynamicParams": []
       },
       "Get Agent Info": {
         "position": {
@@ -211,6 +207,19 @@
         },
         "dynamicParams": []
       },
+      "d433bc3d-522d-4e94-8906-fa14081b1178": {
+        "position": {
+          "x": 1101.6,
+          "y": 921.6
+        }
+      },
+      "62464436-d27a-4647-bff0-d43d61f40d9d": {
+        "position": {
+          "x": 884.8,
+          "y": 579.2
+        },
+        "dynamicParams": []
+      },
       "Udate Agent Name-2": {
         "position": {
           "x": 1175.2,
@@ -230,41 +239,6 @@
         "dynamicMetadata": {
           "agent": true
         }
-      },
-      "d433bc3d-522d-4e94-8906-fa14081b1178": {
-        "position": {
-          "x": 1101.6,
-          "y": 921.6
-        }
-      },
-      "494fa440-30a4-4983-ab39-0d176933467e": {
-        "position": {
-          "x": 1509.6,
-          "y": 586.4
-        },
-        "parameters": {
-          "Attributes": {
-            "queue-name": {
-              "useDynamic": true
-            }
-          }
-        },
-        "dynamicParams": [
-          "queue-name"
-        ]
-      },
-      "Update Queue Name-copy-1": {
-        "position": {
-          "x": 1798.4,
-          "y": 592
-        },
-        "isFriendlyName": true,
-        "parameters": {
-          "LambdaFunctionARN": {
-            "displayName": "UpdateQueueName"
-          }
-        },
-        "dynamicMetadata": {}
       }
     },
     "Annotations": [],
@@ -508,25 +482,6 @@
     },
     {
       "Parameters": {
-        "Attributes": {
-          "beencherrypicked": "YES"
-        },
-        "TargetContact": "Current"
-      },
-      "Identifier": "62464436-d27a-4647-bff0-d43d61f40d9d",
-      "Type": "UpdateContactAttributes",
-      "Transitions": {
-        "NextAction": "Udate Agent Name-2",
-        "Errors": [
-          {
-            "NextAction": "Udate Agent Name-2",
-            "ErrorType": "NoMatchingError"
-          }
-        ]
-      }
-    },
-    {
-      "Parameters": {
         "LambdaFunctionARN": "arn:aws:lambda:us-east-1:917930703347:function:GetAgentInfo",
         "InvocationTimeLimitSeconds": "5",
         "ResponseValidation": {
@@ -586,6 +541,31 @@
       }
     },
     {
+      "Parameters": {},
+      "Identifier": "d433bc3d-522d-4e94-8906-fa14081b1178",
+      "Type": "EndFlowExecution",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "Attributes": {
+          "beencherrypicked": "YES"
+        },
+        "TargetContact": "Current"
+      },
+      "Identifier": "62464436-d27a-4647-bff0-d43d61f40d9d",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "Udate Agent Name-2",
+        "Errors": [
+          {
+            "NextAction": "Udate Agent Name-2",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
       "Parameters": {
         "LambdaFunctionARN": "arn:aws:lambda:us-east-1:917930703347:function:UpdateAgentName",
         "InvocationTimeLimitSeconds": "3",
@@ -597,51 +577,6 @@
         }
       },
       "Identifier": "Udate Agent Name-2",
-      "Type": "InvokeLambdaFunction",
-      "Transitions": {
-        "NextAction": "494fa440-30a4-4983-ab39-0d176933467e",
-        "Errors": [
-          {
-            "NextAction": "494fa440-30a4-4983-ab39-0d176933467e",
-            "ErrorType": "NoMatchingError"
-          }
-        ]
-      }
-    },
-    {
-      "Parameters": {},
-      "Identifier": "d433bc3d-522d-4e94-8906-fa14081b1178",
-      "Type": "EndFlowExecution",
-      "Transitions": {}
-    },
-    {
-      "Parameters": {
-        "Attributes": {
-          "queue-name": "$.Attributes.agent-arn"
-        },
-        "TargetContact": "Current"
-      },
-      "Identifier": "494fa440-30a4-4983-ab39-0d176933467e",
-      "Type": "UpdateContactAttributes",
-      "Transitions": {
-        "NextAction": "Update Queue Name-copy-1",
-        "Errors": [
-          {
-            "NextAction": "Update Queue Name-copy-1",
-            "ErrorType": "NoMatchingError"
-          }
-        ]
-      }
-    },
-    {
-      "Parameters": {
-        "LambdaFunctionARN": "arn:aws:lambda:us-east-1:917930703347:function:UpdateQueueName",
-        "InvocationTimeLimitSeconds": "8",
-        "ResponseValidation": {
-          "ResponseType": "STRING_MAP"
-        }
-      },
-      "Identifier": "Update Queue Name-copy-1",
       "Type": "InvokeLambdaFunction",
       "Transitions": {
         "NextAction": "d433bc3d-522d-4e94-8906-fa14081b1178",
