@@ -72,7 +72,7 @@ When a contact enters Amazon Connect, a Lambda function retrieves the contact in
    npm run build
    npm run prepare-build # Prepares webpack buid
    npm run create-zip # Creates the dist.zip folder with optimized build code - Command ofr MAC / Linux
-   npm run create-7zip # Creates dist.zip folder with optimized build code - Command for windows users. (Must have 7 zip installed and added as a PATH variable, ![see this yoputube video on how to do that if needed](https://www.youtube.com/watch?v=qdfjWpeJDnw))
+   npm run create-7zip # Creates dist.zip folder with optimized build code - Command for windows users. (Must have 7 zip installed and added as a PATH variable, video tutorial: https://www.youtube.com/watch?v=qdfjWpeJDnw )
    ```
 
    - In AWS Amplify, create a new app and upload `build.zip`.
