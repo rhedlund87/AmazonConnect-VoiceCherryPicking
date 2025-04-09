@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logged Out</title>
+    <link rel="shortcut icon" href="favicon.png" />
+    <style>
+        body {
+            /* background-image: url(On-call-background.jpg); */
+            background-color: #077398;
+            background-repeat: no-repeat;
+            background-size: cover;
+            text-align: center;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding-top: 20%;
+        }
+        .logout-container {
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+            display: inline-block;
+        }
+        .logout-container h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .logout-container button {
+            background-color: #077398;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .logout-container button:hover {
+            background-color: #354150 !important;
+            color: #ffffff !important;
+            border: 2px solid #354150 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="logout-container">
+        <h1>Logged Out of Live Queue View</h1>
+        <button onclick="window.location.href='https://dashboard-app-link'">Log In</button>
+    </div>
+</body>
+</html>

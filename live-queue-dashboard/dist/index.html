@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Queue View</title>
+</head>
+<body>
+    <div id="overlay" class="overlay" style="display: none;"></div>
+    <br>
+    <h2>Live Queue View</h2>
+    <div class="filter-container">
+        <div class="filter-group">
+            <label for="queue-filter">Filter by Queue:</label>
+            <input type="text" id="queue-filter" placeholder="Enter Queue Name Here">
+        </div>
+        
+        <div class="checkbox-group">
+            <label for="no-agent-filter">Exclude Contacts With Agents</label>
+            <input type="checkbox" id="no-agent-filter">
+        </div>
+        
+        <button class="btn-refresh" onclick="refresh()" id="refresh-button">
+            Refresh the page
+        </button>
+    </div>
+
+    <div id="loader-container" class="loader-container" style="display: none;">
+        <div class="loader"></div>
+        <p>Loading...</p>
+    </div>
+
+    <div class="table-container">
+        <table id="queue-table">
+            <thead>
+                <tr>
+                    <th>Contact ID</th>
+                    <th>Caller Phone Number</th>
+                    <!-- <th>Caller Name</th> -->
+                    <th>Queue</th>
+                    <!-- <th>Profile Type</th> -->
+                    <th>Call Start Time</th>
+                    <th>Agent</th>
+                    <th>Select</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Rows will be populated here -->
+            </tbody>
+        </table>
+    </div>
+
+    <div id="inactivity-modal" class="modal">
+        <div class="modal-content">
+            <p>Are you still there?</p>
+            <button class="btn-yes" onclick="resumeSession()">Yes</button>
+            <button class="btn-no" onclick="exitPage()">No</button>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content">
+            <p id="confirm-message"></p>
+            <button class="btn-yes" onclick="hideIConfirmModal()">OK</button>
+        </div>
+    </div>
+
+    <script src="bundle.js"></script>
+</body>
+</html>

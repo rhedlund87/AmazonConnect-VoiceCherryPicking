@@ -1,0 +1,30 @@
+{
+    "name": "live-queue-view",
+    "version": "1.0.0",
+    "description": "A web application for viewing live queue data.",
+    "main": "src/index.js",
+    "scripts": {
+        "build": "webpack",
+        "start": "webpack serve --open",
+        "prepare-build": "webpack --env production && cp -r dist/* build/ && cp package.json build/ && cp -r node_modules build/",
+        "create-zip": "cd build && zip -r ../build.zip .",
+	    "create-7zip": "7z a dist.zip ./dist/*"
+    },
+    "author": "Jose Fabian",
+    "license": "MIT",
+    "dependencies": {
+        "@amazon-connect/app": "^1.0.4",
+        "@amazon-connect/contact": "^1.0.4",
+        "archiver": "^7.0.1"
+    },
+    "devDependencies": {
+        "@babel/core": "^7.26.0",
+        "@babel/preset-env": "^7.26.0",
+        "babel-loader": "^8.4.1",
+        "css-loader": "^7.1.2",
+        "style-loader": "^4.0.0",
+        "webpack": "^5.97.1",
+        "webpack-cli": "^4.10.0",
+        "webpack-dev-server": "^4.15.2"
+    }
+}

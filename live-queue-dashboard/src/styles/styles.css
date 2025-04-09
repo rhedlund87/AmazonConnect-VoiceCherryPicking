@@ -1,0 +1,311 @@
+/* Variables */
+:root {
+    --primary-color: #077398;
+    --border-color: rgb(194, 193, 193);
+    --white: #ffffff;
+    --background-light: #f5f5f5;
+    --background-lighter: #f9f9f9;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Base Styles */
+body {
+    font-family: "Amazon Ember", Arial, sans-serif;
+}
+
+/* Layout Components */
+.filter-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px;
+    background-color: var(--background-light);
+    border-radius: 5px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px var(--shadow-color);
+    gap: 20px;
+}
+
+.table-container {
+    width: 100%;
+    overflow: auto;
+    margin: 30px 0;
+    box-shadow: 0 0 20px var(--shadow-color);
+    border-radius: 5px;
+}
+
+/* Table Styles */
+table {
+    width: 100%;
+    min-width: 800px;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--border-color);
+}
+
+th {
+    background-color: var(--primary-color);
+    border: 1px solid var(--border-color);
+    color: var(--white);
+    padding: 15px 10px;
+    text-align: left;
+    top: 0;
+    z-index: 10;
+}
+
+td {
+    padding: 12px 8px;
+    text-align: left;
+    border: 1px solid var(--border-color);
+    height: 40px;
+    background-color: var(--white);
+}
+
+/* Table Interactions */
+tr:hover td {
+    background-color: var(--background-light);
+}
+
+tr:nth-child(even) td {
+    background-color: var(--background-lighter);
+}
+
+td:last-child {
+    width: 75px;
+    text-align: center;
+}
+
+/* Links */
+td a {
+    color: var(--primary-color);
+    text-decoration: none;
+    display: block;
+}
+
+td a:hover {
+    text-decoration: underline;
+    color: black;
+}
+
+/* Filter Elements */
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
+#queue-filter {
+    border-radius: 5px;
+    padding: 10px;
+    border: 1px solid var(--primary-color);
+    width: 200px;
+    flex: 0 0 auto;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
+#no-agent-filter {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+/* Button Styles */
+.button-container {
+    flex: 0 0 auto;
+}
+
+.btn-refresh, .pick-btn {
+    width: 200px;
+    padding: 10px 0;
+    background: var(--white);
+    border: 2px solid var(--primary-color);
+    text-transform: uppercase;
+    color: var(--primary-color);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex: 0 0 auto;
+}
+
+.btn-refresh:hover, 
+.pick-btn:hover {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+.btn-refresh.loading {
+    cursor: not-allowed;
+    opacity: 0.3;
+}
+
+.pick-btn {
+    display: none;
+    padding: 10px 20px;
+    width: 70px;
+}
+
+.pick-btn:disabled {
+    background-color: #ccc;
+    border-color: #ccc;
+    color: var(--white);
+    cursor: not-allowed;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: var(--white);
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 30%;
+    text-align: center;
+    border-radius: 12px;
+}
+
+.modal-content button {
+    padding: 10px 40px;
+    margin: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    background: var(--white);
+    border: 2px solid var(--primary-color);
+    text-transform: uppercase;
+    color: var(--primary-color);
+}
+
+.modal-content button:hover {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+.btn-yes {
+    background-color: var(--primary-color) !important;
+    color: var(--white) !important;
+}
+
+.btn-yes:hover,
+.btn-no:hover {
+    background-color: #354150 !important;
+    color: var(--white) !important;
+    border: 2px solid #354150 !important;
+}
+
+.btn-no {
+    color: var(--white);
+}
+
+/* Loading States */
+.loader-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 1000;
+}
+
+.loader {
+    border: 5px solid #f3f3f3;
+    border-top-color: #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+/* Animations */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive Styles */
+@media screen and (max-width: 768px) {
+    .filter-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group,
+    .checkbox-group,
+    .button-container {
+        width: 100%;
+    }
+
+    #queue-filter,
+    .btn-refresh {
+        width: 100%;
+    }
+
+    #queue-filter {
+        width: 75%;
+    }
+
+    .table-container {
+        margin: 15px 0;
+        border-radius: 0;
+    }
+
+    table {
+        font-size: 14px;
+    }
+
+    th, td {
+        padding: 8px 5px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .filter-container {
+        padding: 10px;
+    }
+    .low-priority {
+        display: none;
+    }
+}
+
+/* Accessibility */
+.btn-refresh:focus,
+#queue-filter:focus,
+#no-agent-filter:active {
+    outline: 2px solid var(--primary-color);
+}
+
+@media (prefers-contrast: high) {
+    .filter-container,
+    .btn-refresh {
+        border: 2px solid #000;
+    }
+}
