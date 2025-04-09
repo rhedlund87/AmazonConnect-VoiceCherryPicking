@@ -49,7 +49,7 @@ When a contact enters Amazon Connect, a Lambda function retrieves the contact in
 1. **Clone the Repository:**
 
    ```bash
-   git clone https://github.com/rhedlund87/AmazonConect-VoiceCherryPicking.git
+   git clone https://github.com/your-repo/AmazonConect-VoiceCherryPicking.git
    ```
 
 2. **Deploy AWS Resources:**
