@@ -1,0 +1,91 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "222caecc-c107-4553-87fc-85a74c34bb06",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": 74.4,
+      "y": 20
+    },
+    "ActionMetadata": {
+      "95dc2179-0f18-4646-8e15-15377c9cbb29": {
+        "position": {
+          "x": 561.6,
+          "y": 57.6
+        }
+      },
+      "222caecc-c107-4553-87fc-85a74c34bb06": {
+        "position": {
+          "x": 205.6,
+          "y": 11.2
+        }
+      },
+      "Udate Agent Name CB-copy-1": {
+        "position": {
+          "x": 220.8,
+          "y": 197.6
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "UpdateAgentName"
+          },
+          "LambdaInvocationAttributes": {
+            "agent": {
+              "useDynamic": true
+            }
+          }
+        },
+        "dynamicMetadata": {
+          "agent": true
+        }
+      }
+    },
+    "Annotations": [],
+    "name": "Default agent whisper",
+    "description": "Default whisper played to the agent.",
+    "type": "agentWhisper",
+    "status": "PUBLISHED",
+    "hash": {}
+  },
+  "Actions": [
+    {
+      "Parameters": {},
+      "Identifier": "95dc2179-0f18-4646-8e15-15377c9cbb29",
+      "Type": "EndFlowExecution",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "Text": "$.Queue.Name"
+      },
+      "Identifier": "222caecc-c107-4553-87fc-85a74c34bb06",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "Udate Agent Name CB-copy-1"
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-east-1:917930703347:function:UpdateAgentName",
+        "InvocationTimeLimitSeconds": "5",
+        "LambdaInvocationAttributes": {
+          "agent": "$.Agent.FirstName"
+        },
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "Udate Agent Name CB-copy-1",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "95dc2179-0f18-4646-8e15-15377c9cbb29",
+        "Errors": [
+          {
+            "NextAction": "95dc2179-0f18-4646-8e15-15377c9cbb29",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}

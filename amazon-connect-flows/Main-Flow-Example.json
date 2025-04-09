@@ -1,0 +1,294 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "38ed9e8a-3d6c-4e77-b5f9-ad6e1811f5ca",
+  "Metadata": {
+    "entryPointPosition": {
+      "x": -599.2,
+      "y": 20.8
+    },
+    "ActionMetadata": {
+      "c55317b5-c284-46d7-afd9-00814b881f03": {
+        "position": {
+          "x": 1054.4,
+          "y": 355.2
+        }
+      },
+      "a59fb451-0fc5-4714-8bac-771afe84bcb0": {
+        "position": {
+          "x": 1061.6,
+          "y": 556
+        }
+      },
+      "38ed9e8a-3d6c-4e77-b5f9-ad6e1811f5ca": {
+        "position": {
+          "x": -525.6,
+          "y": -6.4
+        }
+      },
+      "4c1352ac-452c-44a4-b6f0-d558ffac96ee": {
+        "position": {
+          "x": 224,
+          "y": -85.6
+        },
+        "conditionMetadata": [
+          {
+            "id": "cad19a6d-1b33-4c6b-aaaa-4c4dfc488579",
+            "value": "1"
+          }
+        ]
+      },
+      "d44873c1-e2dc-4d97-820a-146f4e98330d": {
+        "position": {
+          "x": -279.2,
+          "y": -76.8
+        },
+        "overrideConsoleVoice": false
+      },
+      "Create Records": {
+        "position": {
+          "x": -20,
+          "y": -37.6
+        },
+        "isFriendlyName": true,
+        "parameters": {
+          "LambdaFunctionARN": {
+            "displayName": "CreateRecords"
+          }
+        },
+        "dynamicMetadata": {}
+      },
+      "924fa206-80c9-414a-baeb-ca2762b92178": {
+        "position": {
+          "x": 1041.6,
+          "y": 164.8
+        }
+      },
+      "7b3bd167-cebd-4aed-80ce-3db327ece903": {
+        "position": {
+          "x": 546.4,
+          "y": -31.2
+        },
+        "parameters": {
+          "EventHooks": {
+            "CustomerQueue": {
+              "displayName": "Live-Queue-Customer-Flow-Example"
+            }
+          }
+        },
+        "contactFlow": {
+          "text": "Live-Queue-Customer-Flow-Example",
+          "id": "arn:aws:connect:us-east-1:917930703347:instance/464793c3-9d15-409b-a101-c2212683a04e/contact-flow/c35000eb-a752-4838-b7dd-4e58d0662529"
+        },
+        "customerOrAgent": true
+      },
+      "5c895192-c49e-4a4b-bd99-de1e0791eb4d": {
+        "position": {
+          "x": 1038.4,
+          "y": -28
+        },
+        "parameters": {
+          "Attributes": {
+            "queue-name": {
+              "useDynamic": true
+            }
+          }
+        },
+        "dynamicParams": [
+          "queue-name"
+        ]
+      },
+      "efc42377-6a24-4afb-9026-70935a6f4fee": {
+        "position": {
+          "x": 782.4,
+          "y": -31.2
+        },
+        "parameters": {
+          "QueueId": {
+            "displayName": "BasicQueue"
+          }
+        },
+        "queue": {
+          "text": "BasicQueue"
+        }
+      }
+    },
+    "Annotations": [],
+    "name": "Main-Flow-Example",
+    "description": "The main flow for ADS",
+    "type": "contactFlow",
+    "status": "published",
+    "hash": {}
+  },
+  "Actions": [
+    {
+      "Parameters": {
+        "Text": "Sorry, something went wrong. Failed to transfer. Please call us again later."
+      },
+      "Identifier": "c55317b5-c284-46d7-afd9-00814b881f03",
+      "Type": "MessageParticipant",
+      "Transitions": {
+        "NextAction": "a59fb451-0fc5-4714-8bac-771afe84bcb0",
+        "Errors": [
+          {
+            "NextAction": "a59fb451-0fc5-4714-8bac-771afe84bcb0",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "a59fb451-0fc5-4714-8bac-771afe84bcb0",
+      "Type": "DisconnectParticipant",
+      "Transitions": {}
+    },
+    {
+      "Parameters": {
+        "FlowLoggingBehavior": "Enabled"
+      },
+      "Identifier": "38ed9e8a-3d6c-4e77-b5f9-ad6e1811f5ca",
+      "Type": "UpdateFlowLoggingBehavior",
+      "Transitions": {
+        "NextAction": "d44873c1-e2dc-4d97-820a-146f4e98330d"
+      }
+    },
+    {
+      "Parameters": {
+        "Text": "Thank you for callling  our live queue dashboard example. Now you can press one to be placed in the queue. ",
+        "StoreInput": "False",
+        "InputTimeLimitSeconds": "5"
+      },
+      "Identifier": "4c1352ac-452c-44a4-b6f0-d558ffac96ee",
+      "Type": "GetParticipantInput",
+      "Transitions": {
+        "NextAction": "7b3bd167-cebd-4aed-80ce-3db327ece903",
+        "Conditions": [
+          {
+            "NextAction": "7b3bd167-cebd-4aed-80ce-3db327ece903",
+            "Condition": {
+              "Operator": "Equals",
+              "Operands": [
+                "1"
+              ]
+            }
+          }
+        ],
+        "Errors": [
+          {
+            "NextAction": "7b3bd167-cebd-4aed-80ce-3db327ece903",
+            "ErrorType": "InputTimeLimitExceeded"
+          },
+          {
+            "NextAction": "7b3bd167-cebd-4aed-80ce-3db327ece903",
+            "ErrorType": "NoMatchingCondition"
+          },
+          {
+            "NextAction": "7b3bd167-cebd-4aed-80ce-3db327ece903",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "TextToSpeechVoice": "Joanna"
+      },
+      "Identifier": "d44873c1-e2dc-4d97-820a-146f4e98330d",
+      "Type": "UpdateContactTextToSpeechVoice",
+      "Transitions": {
+        "NextAction": "Create Records"
+      }
+    },
+    {
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-east-1:917930703347:function:CreateRecords",
+        "InvocationTimeLimitSeconds": "5",
+        "ResponseValidation": {
+          "ResponseType": "STRING_MAP"
+        }
+      },
+      "Identifier": "Create Records",
+      "Type": "InvokeLambdaFunction",
+      "Transitions": {
+        "NextAction": "4c1352ac-452c-44a4-b6f0-d558ffac96ee",
+        "Errors": [
+          {
+            "NextAction": "4c1352ac-452c-44a4-b6f0-d558ffac96ee",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {},
+      "Identifier": "924fa206-80c9-414a-baeb-ca2762b92178",
+      "Type": "TransferContactToQueue",
+      "Transitions": {
+        "NextAction": "c55317b5-c284-46d7-afd9-00814b881f03",
+        "Errors": [
+          {
+            "NextAction": "c55317b5-c284-46d7-afd9-00814b881f03",
+            "ErrorType": "QueueAtCapacity"
+          },
+          {
+            "NextAction": "c55317b5-c284-46d7-afd9-00814b881f03",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "EventHooks": {
+          "CustomerQueue": "arn:aws:connect:us-east-1:917930703347:instance/464793c3-9d15-409b-a101-c2212683a04e/contact-flow/c35000eb-a752-4838-b7dd-4e58d0662529"
+        }
+      },
+      "Identifier": "7b3bd167-cebd-4aed-80ce-3db327ece903",
+      "Type": "UpdateContactEventHooks",
+      "Transitions": {
+        "NextAction": "efc42377-6a24-4afb-9026-70935a6f4fee",
+        "Errors": [
+          {
+            "NextAction": "efc42377-6a24-4afb-9026-70935a6f4fee",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "Attributes": {
+          "queue-name": "$.Queue.ARN"
+        },
+        "TargetContact": "Current"
+      },
+      "Identifier": "5c895192-c49e-4a4b-bd99-de1e0791eb4d",
+      "Type": "UpdateContactAttributes",
+      "Transitions": {
+        "NextAction": "924fa206-80c9-414a-baeb-ca2762b92178",
+        "Errors": [
+          {
+            "NextAction": "924fa206-80c9-414a-baeb-ca2762b92178",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    },
+    {
+      "Parameters": {
+        "QueueId": "arn:aws:connect:us-east-1:917930703347:instance/464793c3-9d15-409b-a101-c2212683a04e/queue/c76e1ad6-2fb9-4d7f-8f2c-a20ee845167f"
+      },
+      "Identifier": "efc42377-6a24-4afb-9026-70935a6f4fee",
+      "Type": "UpdateContactTargetQueue",
+      "Transitions": {
+        "NextAction": "5c895192-c49e-4a4b-bd99-de1e0791eb4d",
+        "Errors": [
+          {
+            "NextAction": "5c895192-c49e-4a4b-bd99-de1e0791eb4d",
+            "ErrorType": "NoMatchingError"
+          }
+        ]
+      }
+    }
+  ]
+}
