@@ -81,26 +81,26 @@ When a contact enters Amazon Connect, a Lambda function retrieves the contact in
 
 5. **Integrate with Amazon Connect:**
 
-   - **Flows:** Import example flows from `amazon-connect-flows`.
-   - **Third-party App:** Add the dashboard URL from step 4 to your Amazon Connect [third-party application](https://docs.aws.amazon.com/connect/latest/adminguide/onboard-3p-apps.html).
    - **Lambda Functions:** Ensure Lambda functions `CreateRecords`,`UpdateAgentName`,`UpdateQueueName`,`GetAgentInfo` [are added into connect instance](https://docs.aws.amazon.com/connect/latest/adminguide/connect-lambda-functions.html) and accessible in Connect flows.
+   - **Flows:** Import example flows from `amazon-connect-flows`. (Default agent whisper - type Agent whisper | Live-Queue-Customer-Flow-Example - type Custmer queue flow | Main-Flow-Example - type Inbound flow)
+   - **Third-party App:** Add the dashboard URL from step 4 to your Amazon Connect [third-party application](https://docs.aws.amazon.com/connect/latest/adminguide/onboard-3p-apps.html).
    - **Security Profile:** Enable access for the application in security profiles as shown below.
 
    ![alt text](image-2.png)
 
 6. **Test the System:**
 
-- Connect the main flow (Main-Flow-Example) to a phone number.
+- Connect the main flow (Main-Flow-Example) to a phone number and verify Lambda CreateRecords is available.
 - Open the customer flow (Live-Queue-Customer-Flow) and verify all lambdas are accessible. If the lambda blocks have errors, reselect the lambdas and publish the flow again.
 - In the agent workspace app, open the live queue dashboard.
--  Place a call and verify call visibility and cherry-pick functionality on the dashboard.
+- Place a call and verify call visibility and cherry-pick functionality on the dashboard.
 - Ensure that calls disappear from the dashboard once they are disconnected.
 
 ## Production Considerations and Improvements
 
-In production environments, customers typically hear different messages and music while waiting in the queue for their call to be picked up. To ensure this solution works effectively, it is recommended to trim the music to at least five seconds and carefully check if a contact has been cherry-picked after each music or message block. This approach ensures that when an agent picks up the call, it is transferred to their queue without any delay. Below is an example of how this can be set up.
+In production environments, customers typically hear different messages and music while waiting in the queue for their call to be picked up. To ensure this solution works effectively, it is recommended to trim the music to at least five seconds and carefully check if a contact has been cherry-picked after each music or message block. This approach ensures that when an agent picks up the call, it is transferred to their queue without any delay. Below is an example of how this can be set up. This examples just uses 5 secodns of the customerqueue/wav and is not a production example of how you should handle the audio in the queue. This will need special consideration when using in production.
 
-![alt text](image-1.png)
+
 
 
 ## Cleanup
@@ -108,7 +108,7 @@ In production environments, customers typically hear different messages and musi
 1. **Remove AWS Resources:**
 
    - Delete the CloudFormation stack to remove associated resources.
-
+ 
 2. **Delete Amplify App:**
 
    - Navigate to AWS Amplify and delete the deployed app.
