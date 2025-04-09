@@ -1,0 +1,761 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'API Stack for AC-Queue-View-And-Cherry-Pick'
+
+Parameters:
+  ConnectInstanceId:
+    Type: String
+    Description: Existing Amazon Connect Instance ID
+  ConnectAccessUrl:
+    Type: String
+    Description: Existing Amazon Connect access url eg. https://instace.my.connect.aws
+
+Resources:
+  # DynamoDB Table
+  ConnectLiveQueueView:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: connect-live-queue-view
+      AttributeDefinitions:
+        - AttributeName: ContactID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ContactID
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # Base IAM Role for Lambda Functions
+  LambdaBaseRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:BatchGetItem
+                  - dynamodb:Scan
+                Resource: !GetAtt ConnectLiveQueueView.Arn
+        - PolicyName: ConnectAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - connect:GetCurrentMetricData
+                  - connect:GetMetricData
+                  - connect:UpdateContactAttributes
+                  - connect:GetContactAttributes
+                  - connect:StartOutboundVoiceContact
+                  - connect:StopContact
+                Resource: !Sub arn:aws:connect:${AWS::Region}:${AWS::AccountId}:instance/${ConnectInstanceId}/*
+  # Lambda Functions
+  CreateRecordsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: CreateRecords
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaBaseRole.Arn
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import os
+          from datetime import datetime, timedelta
+
+          def lambda_handler(event, context):
+              try:
+                  # Initialize DynamoDB
+                  dynamodb = boto3.resource('dynamodb')
+                  table = dynamodb.Table('connect-live-queue-view')
+                  
+                  # Extract contact details
+                  contact_data = event['Details']['ContactData']
+                  contact_id = contact_data['ContactId']
+                  ani = contact_data['CustomerEndpoint']['Address']
+                  dnis = contact_data['SystemEndpoint']['Address']
+                  url = os.environ['ACCESS_URL']
+                  
+                  # Get current time in EST
+                  utc_now = datetime.utcnow()
+                  est_now = utc_now - timedelta(hours=5)
+                  start_time = est_now.strftime('%Y-%m-%d %I:%M:%S %p')
+                  start_time_raw = int(utc_now.timestamp())
+                  
+                  # Create contact details URL
+                  contact_details_url = f"{url}/contact-trace-records/details/{contact_id}"
+                  
+                  # Prepare item for DynamoDB
+                  item = {
+                      'ContactID': contact_id,
+                      'ANI': ani,
+                      'DNIS': dnis,
+                      'startTime': start_time,
+                      'timestamp': start_time_raw,
+                      'ContactDetails': contact_details_url
+                  }
+                  
+                  # Write to DynamoDB
+                  table.put_item(Item=item)
+                  
+                  return {
+                      'statusCode': 200,
+                      'body': json.dumps('Successfully added contact')
+                  }
+              except Exception as e:
+                  print(f"Error: {str(e)}")
+                  return {
+                      'statusCode': 500,
+                      'body': json.dumps(str(e))
+                  }
+      Runtime: python3.9
+      Timeout: 30
+      Environment:
+        Variables:
+          ACCESS_URL: !Ref ConnectAccessUrl
+
+  UpdateAgentNameFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: UpdateAgentName
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaBaseRole.Arn
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          from datetime import datetime, timedelta
+
+          def lambda_handler(event, context):
+              try:
+                  # Initialize DynamoDB
+                  dynamodb = boto3.resource('dynamodb')
+                  table = dynamodb.Table('connect-live-queue-view')
+                  
+                  # Extract data from event
+                  contact_data = event['Details']['ContactData']
+                  contact_id = contact_data['ContactId']
+                  agent = event['Details']['Parameters'].get('agent', '')
+                  
+                  # Get current time in EST
+                  utc_now = datetime.utcnow()
+                  est_now = utc_now - timedelta(hours=5)
+                  agent_connected_timestamp = est_now.strftime('%Y-%m-%d %I:%M:%S %p')
+                  
+                  # Update DynamoDB
+                  response = table.update_item(
+                      Key={'ContactID': contact_id},
+                      UpdateExpression="SET #agent = :agent, #timestamp = :timestamp",
+                      ExpressionAttributeNames={
+                          '#agent': 'Agent',
+                          '#timestamp': 'AgentConnectedTimestamp'
+                      },
+                      ExpressionAttributeValues={
+                          ':agent': agent,
+                          ':timestamp': agent_connected_timestamp
+                      },
+                      ReturnValues="UPDATED_NEW"
+                  )
+                  
+                  return {
+                      'statusCode': 200,
+                      'body': json.dumps(response['Attributes'])
+                  }
+              except Exception as e:
+                  print(f"Error: {str(e)}")
+                  return {
+                      'statusCode': 500,
+                      'body': json.dumps(str(e))
+                  }
+      Runtime: python3.9
+      Timeout: 30
+  
+  DeleteDisconnectedCallFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: DeleteDisconnectedCall
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaBaseRole.Arn
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+
+          def lambda_handler(event, context):
+              try:
+                  # Initialize DynamoDB
+                  dynamodb = boto3.resource('dynamodb')
+                  table = dynamodb.Table('connect-live-queue-view')
+                  
+                  # Extract contact ID from event
+                  contact_id = event['detail']['contactId']
+                  initiation_method = event['detail'].get('initiationMethod')
+                  initial_contact_id = event['detail'].get('initialContactId')
+                  
+                  # Handle callback scenario
+                  if initiation_method == 'CALLBACK':
+                      if initial_contact_id:
+                          table.delete_item(Key={'ContactID': initial_contact_id})
+                  
+                  # Get current contact details
+                  response = table.get_item(Key={'ContactID': contact_id})
+                  item = response.get('Item')
+                  
+                  if item and item.get('Agent') != 'Callback':
+                      table.delete_item(Key={'ContactID': contact_id})
+                  
+                  return {
+                      'statusCode': 200,
+                      'body': json.dumps('Successfully processed disconnected call')
+                  }
+              except Exception as e:
+                  print(f"Error: {str(e)}")
+                  return {
+                      'statusCode': 500,
+                      'body': json.dumps(str(e))
+                  }
+      Runtime: python3.9
+      Timeout: 30
+
+  PopulateWebPageFunction:
+
+
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: PopulateWebPage
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaBaseRole.Arn
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+          from decimal import Decimal
+
+          class DecimalEncoder(json.JSONEncoder):
+              def default(self, obj):
+                  if isinstance(obj, Decimal):
+                      return float(obj)
+                  return super(DecimalEncoder, self).default(obj)
+
+          def lambda_handler(event, context):
+              try:
+                  # Initialize DynamoDB
+                  dynamodb = boto3.resource('dynamodb')
+                  table = dynamodb.Table('connect-live-queue-view')
+                  
+                  # Scan table for all items
+                  response = table.scan()
+                  items = response.get('Items', [])
+                  
+                  return {
+                      'statusCode': 200,
+                      'headers': {
+                          'Content-Type': 'application/json',
+                          'Access-Control-Allow-Origin': '*'
+                      },
+                      'body': json.dumps(items, cls=DecimalEncoder)
+                  }
+              except Exception as e:
+                  print(f"Error: {str(e)}")
+                  return {
+                      'statusCode': 500,
+                      'headers': {
+                          'Content-Type': 'application/json',
+                          'Access-Control-Allow-Origin': '*'
+                      },
+                      'body': json.dumps(str(e))
+                  }
+      Runtime: python3.9
+      Timeout: 30
+
+  UpdateContactCherryPickedFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: UpdateContactCherryPicked
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaBaseRole.Arn
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import os
+          import logging
+
+          # Initialize logging
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          # Initialize AWS services
+          dynamodb_client = boto3.resource('dynamodb', region_name='us-east-1')
+          table = dynamodb_client.Table('connect-live-queue-view')
+          connect_client = boto3.client('connect')
+
+          # Environment variables
+          INSTANCE_ID = os.environ.get('INSTANCE_ID')
+
+          def create_response(status_code, body):
+              """Helper function to create response with CORS headers"""
+              return {
+                  'statusCode': status_code,
+                  'headers': {
+                      'Access-Control-Allow-Origin': '*',
+                      'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+                      'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
+                      'Content-Type': 'application/json'
+                  },
+                  'body': json.dumps(body)
+              }
+
+          def update_dynamodb_item(contact_id, agent_arn, agent_name):
+              """Update item in DynamoDB"""
+              update_expression = "SET #agentARN = :agent_arn, #agt = :agent_name"
+              expression_attribute_names = {
+                  '#agentARN': 'AgentARN',
+                  '#agt': 'Agent'
+              }
+              expression_attribute_values = {
+                  ':agent_arn': agent_arn,
+                  ':agent_name': agent_name
+              }
+              return table.update_item(
+                  Key={'ContactID': contact_id},
+                  UpdateExpression=update_expression,
+                  ExpressionAttributeNames=expression_attribute_names,
+                  ExpressionAttributeValues=expression_attribute_values,
+                  ReturnValues="UPDATED_NEW"
+              )
+
+          def rollback_dynamodb_update(contact_id):
+              """Rollback DynamoDB update"""
+              try:
+                  table.update_item(
+                      Key={'ContactID': contact_id},
+                      UpdateExpression="REMOVE #agentARN, #agt",
+                      ExpressionAttributeNames={
+                          '#agentARN': 'AgentARN',
+                          '#agt': 'Agent'
+                      },
+                      ReturnValues="UPDATED_NEW"
+                  )
+                  logger.info(f"Successfully rolled back DynamoDB update for contact {contact_id}")
+              except Exception as e:
+                  logger.error(f"Failed to rollback DynamoDB update for contact {contact_id}: {e}")
+
+          def update_contact_attributes(contact_id):
+              """Update contact attributes in Connect"""
+              return connect_client.update_contact_attributes(
+                  InstanceId=INSTANCE_ID,
+                  InitialContactId=contact_id,
+                  Attributes={
+                      'CherryPicked': 'Yes'
+                  }
+              )
+
+          def rollback_connect_attributes(contact_id):
+              """Rollback Connect attributes update"""
+              try:
+                  connect_client.update_contact_attributes(
+                      InstanceId=INSTANCE_ID,
+                      InitialContactId=contact_id,
+                      Attributes={
+                          'CherryPicked': 'No'
+                      }
+                  )
+                  logger.info(f"Successfully rolled back Connect attributes for contact {contact_id}")
+              except Exception as e:
+                  logger.error(f"Failed to rollback Connect attributes for contact {contact_id}: {e}")
+
+
+              """Main Lambda handler function"""
+              logger.info(f"Received event: {event}")
+
+              # Handle OPTIONS request for CORS
+              if event.get('httpMethod') == 'OPTIONS':
+                  return create_response(200, {})
+
+              try:
+                  # Parse and validate request body
+                  body = json.loads(event.get('body', '{}'))
+                  contact_id = body.get('ContactID')
+                  agent_arn = body.get('AgentARN')
+                  agent_name = body.get('AgentName')
+
+                  if not contact_id:
+                      logger.error("Contact ID is required")
+                      return create_response(400, {'error': 'Contact ID is required'})
+
+                  if not agent_arn:
+                      logger.error("Agent ARN is required")
+                      return create_response(400, {'error': 'Agent ARN is required'})
+
+                  if not INSTANCE_ID:
+                      logger.error("Instance ID is missing from environment variables")
+                      return create_response(500, {'error': 'Instance ID is not set'})
+
+                  # Update DynamoDB
+                  try:
+                      dynamodb_response = update_dynamodb_item(contact_id, agent_arn, agent_name)
+                      logger.info(f"Successfully updated contact {contact_id} with Agent ARN")
+                  except Exception as e:
+                      logger.error(f"Failed to update DynamoDB: {e}")
+                      raise Exception(f"DynamoDB update failed: {str(e)}")
+
+                  # Update Connect attributes
+                  try:
+                      connect_response = update_contact_attributes(contact_id)
+                      logger.info(f"Successfully updated contact {contact_id} with cherry-picked = yes")
+                  except Exception as e:
+                      # If Connect update fails, rollback DynamoDB update
+                      logger.error(f"Failed to update Connect attributes: {e}")
+                      rollback_dynamodb_update(contact_id)
+                      raise Exception(f"Connect update failed: {str(e)}")
+
+                  return create_response(200, connect_response)
+
+              except json.JSONDecodeError as e:
+                  logger.error(f"Failed to parse JSON body: {e}")
+                  return create_response(400, {'error': 'Invalid JSON format'})
+              except Exception as e:
+                  logger.error(f"Error updating contact {contact_id}: {e}")
+                  return create_response(500, {'error': f"Error updating contact {contact_id}: {str(e)}"})
+          def lambda_handler(event, context):
+              """Main Lambda handler function"""
+              logger.info(f"Received event: {event}")
+
+              # Handle OPTIONS request for CORS
+              if event.get('httpMethod') == 'OPTIONS':
+                  return create_response(200, {})
+
+              try:
+                  # Parse and validate request body
+                  body = json.loads(event.get('body', '{}'))
+                  contact_id = body.get('ContactID')
+                  agent_arn = body.get('AgentARN')
+                  agent_name = body.get('AgentName')
+
+                  if not contact_id:
+                      logger.error("Contact ID is required")
+                      return create_response(400, {'error': 'Contact ID is required'})
+
+                  if not agent_arn:
+                      logger.error("Agent ARN is required")
+                      return create_response(400, {'error': 'Agent ARN is required'})
+
+                  if not INSTANCE_ID:
+                      logger.error("Instance ID is missing from environment variables")
+                      return create_response(500, {'error': 'Instance ID is not set'})
+
+                  dynamodb_updated = False
+                  connect_updated = False
+
+                  try:
+                      # Update DynamoDB
+                      dynamodb_response = update_dynamodb_item(contact_id, agent_arn, agent_name)
+                      dynamodb_updated = True
+                      logger.info(f"Successfully updated contact {contact_id} with Agent ARN")
+
+                      # Update Connect attributes
+                      connect_response = update_contact_attributes(contact_id)
+                      connect_updated = True
+                      logger.info(f"Successfully updated contact {contact_id} with cherry-picked = yes")
+
+                  except Exception as e:
+                      # Handle rollbacks based on what was updated
+                      if dynamodb_updated and not connect_updated:
+                          logger.error(f"Connect update failed, rolling back DynamoDB update")
+                          rollback_dynamodb_update(contact_id)
+                      elif connect_updated and not dynamodb_updated:
+                          logger.error(f"DynamoDB update failed, rolling back Connect update")
+                          rollback_connect_attributes(contact_id)
+
+                      raise Exception(f"Update failed: {str(e)}")
+
+                  return create_response(200, connect_response)
+
+              except json.JSONDecodeError as e:
+                  logger.error(f"Failed to parse JSON body: {e}")
+                  return create_response(400, {'error': 'Invalid JSON format'})
+              except Exception as e:
+                  logger.error(f"Error updating contact {contact_id}: {e}")
+                  return create_response(500, {'error': f"Error updating contact {contact_id}: {str(e)}"})
+      Runtime: python3.9
+      Timeout: 30
+      Environment:
+        Variables:
+          INSTANCE_ID: !Ref ConnectInstanceId
+
+  GetAgentInfoFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: GetAgentInfo
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaBaseRole.Arn
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+          import logging
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          dynamodb = boto3.resource('dynamodb')
+          table = dynamodb.Table('connect-live-queue-view')
+
+          def lambda_handler(event, context):
+              try:
+                  # Extract contact data
+                  contact_data = event['Details']['ContactData']
+                  contact_id = contact_data['ContactId']
+
+                  # Query DynamoDB
+                  response = table.get_item(
+                      Key={'ContactID': contact_id}
+                  )
+
+                  item = response.get('Item', {})
+                  agent_arn = item.get('AgentARN')
+                  agent_name = item.get('Agent')
+
+                  if not agent_arn:
+                      return {
+                          'statusCode': 404,
+                          'error': f'No AgentARN found for contactId: {contact_id}'
+                      }
+
+                  return {
+                      'statusCode': 200,
+                      'agentARN': agent_arn,
+                      'agentName': agent_name
+                  }
+
+              except Exception as e:
+                  logger.error(f"Error: {str(e)}")
+                  return {
+                      'statusCode': 500,
+                      'error': str(e)
+                  }
+      Runtime: python3.9
+      Timeout: 30
+
+  UpdateQueueNameFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: UpdateQueueName
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaBaseRole.Arn
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          from datetime import datetime, timedelta
+
+          def lambda_handler(event, context):
+              try:
+                  # Initialize DynamoDB
+                  dynamodb = boto3.resource('dynamodb')
+                  table = dynamodb.Table('connect-live-queue-view')
+
+                  # Extract contact details
+                  contact_data = event['Details']['ContactData']
+                  contact_id = contact_data['ContactId']
+                  queue_name = contact_data['Queue']['Name']
+
+                  # Get current time in EST
+                  utc_now = datetime.utcnow()
+                  est_now = utc_now - timedelta(hours=5)
+                  enqueue_timestamp = est_now.strftime('%Y-%m-%d %I:%M:%S %p')
+
+                  # Update DynamoDB
+                  response = table.update_item(
+                      Key={'ContactID': contact_id},
+                      UpdateExpression="SET #queue = :queue_name, #timestamp = :enqueue_timestamp",
+                      ExpressionAttributeNames={
+                          '#queue': 'Queue',
+                          '#timestamp': 'EnqueueTimestamp'
+                      },
+                      ExpressionAttributeValues={
+                          ':queue_name': queue_name,
+                          ':enqueue_timestamp': enqueue_timestamp
+                      },
+                      ReturnValues="UPDATED_NEW"
+                  )
+
+                  return {
+                      'statusCode': 200,
+                      'body': json.dumps(response['Attributes'])
+                  }
+              except Exception as e:
+                  print(f"Error: {str(e)}")
+                  return {
+                      'statusCode': 500,
+                      'body': json.dumps(str(e))
+                  }
+      Runtime: python3.9
+      Timeout: 30
+  # API Gateway
+  ApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: AC-Queue-API
+      Description: API for AC-Queue-View-And-Cherry-Pick
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  QueueResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: 'queue'
+      RestApiId: !Ref ApiGateway
+
+  QueueGetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId: !Ref QueueResource
+      RestApiId: !Ref ApiGateway
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PopulateWebPageFunction.Arn}/invocations
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+
+  # API Gateway CORS Configuration
+  QueuePostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: POST
+      ResourceId: !Ref QueueResource
+      RestApiId: !Ref ApiGateway
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateContactCherryPickedFunction.Arn}/invocations
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
+  QueueOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: OPTIONS
+      ResourceId: !Ref QueueResource
+      RestApiId: !Ref ApiGateway
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST,GET'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
+  UpdateContactCherryPickedPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref UpdateContactCherryPickedFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*/*
+
+  # EventBridge Rule
+  DisconnectedCallRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub ${AWS::StackName}-DisconnectedCallRule
+      Description: "Rule to trigger DeleteDisconnectedCall lambda when a contact is disconnected"
+      EventPattern:
+        source:
+          - "aws.connect"
+        detail-type:
+          - "Amazon Connect Contact Event"
+        detail:
+          eventType:
+            - "DISCONNECTED"
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt DeleteDisconnectedCallFunction.Arn
+          Id: "DeleteDisconnectedCallTarget"
+
+  DeleteDisconnectedCallPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref DeleteDisconnectedCallFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt DisconnectedCallRule.Arn
+
+  # TODO Associate Lambda Functions with Connect Instance
+  # ConnectGetAgentInfoPermission:
+  #   Type: AWS::Lambda::Permission
+  #   Properties:
+  #     Action: lambda:InvokeFunction
+  #     FunctionName: !Ref GetAgentInfoFunction
+  #     Principal: connect.amazonaws.com
+  #     SourceAccount: !Ref AWS::AccountId
+  #     SourceArn: !Sub arn:aws:connect:${AWS::Region}:${AWS::AccountId}:instance/${ConnectInstanceId}
+
+  ApiGatewayPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PopulateWebPageFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*/*
+
+  # API Deployment
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - QueueGetMethod
+      - QueuePostMethod
+      - QueueOptionsMethod
+    Properties:
+      RestApiId: !Ref ApiGateway
+      StageName: prod
+
+Outputs:
+  GetQueueDataURL:
+    Description: GET Queue Data endpoint
+    Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/queue
+  
+  DynamoDBTableName:
+    Description: Name of the DynamoDB table
+    Value: !Ref ConnectLiveQueueView
