@@ -1,4 +1,4 @@
-# AmazonConect-VoiceCherryPicking
+# AmazonConnect-VoiceCherryPicking
 Amazon Connect - Live call view with Cherry Picking
 
 This project enables real-time queue monitoring and contact cherry-picking in Amazon Connect, using Lambda functions, a DynamoDB table, EventBridge rule, and an API Gateway. It features automatic refreshing, contact filtering, and cherry-picking capabilities for agents. 
