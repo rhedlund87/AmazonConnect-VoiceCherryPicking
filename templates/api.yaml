@@ -65,6 +65,19 @@ Resources:
                   - connect:StartOutboundVoiceContact
                   - connect:StopContact
                 Resource: !Sub arn:aws:connect:${AWS::Region}:${AWS::AccountId}:instance/${ConnectInstanceId}/*
+        - PolicyName: APIgatewayAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - execute-api:Invoke
+                  - execute-api:ManageConnections
+                Resource: arn:aws:execute-api:*:*:*
+              - Effect: Allow
+                Action:
+                  - apigateway:*
+                Resource: arn:aws:apigateway:*::/*
   # Lambda Functions
   CreateRecordsFunction:
     Type: AWS::Lambda::Function
