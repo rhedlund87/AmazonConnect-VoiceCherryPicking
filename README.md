@@ -15,7 +15,7 @@ When a contact enters Amazon Connect, a Lambda function retrieves the contact in
 - **Name:** `connect-live-queue-view`
 - **Keys:** `ContactID` (String)
 
-### Lambda Functions
+### Lambda Functions (Python 3.9)
 
 - **`CreateRecords`:** Initializes contact records.
 - **`UpdateAgentName`:** Updates agent assignment.
