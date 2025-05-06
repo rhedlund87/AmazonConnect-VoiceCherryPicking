@@ -1,0 +1,165 @@
+import json
+import boto3
+import os
+import logging
+import time  # Added to handle delay
+
+# Initialize logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# Initialize AWS services
+dynamodb_client = boto3.resource('dynamodb', region_name='us-east-1')
+table = dynamodb_client.Table('connect-live-queue-view')
+connect_client = boto3.client('connect')
+
+# Environment variables
+INSTANCE_ID = os.environ.get('INSTANCE_ID')
+STATUS_ID = os.environ.get('STATUS_ID')  # Temporary status
+AVAIL_ID = os.environ.get('AVAIL_ID')    # Availability status
+
+def create_response(status_code, body):
+    """Helper function to create response with CORS headers"""
+    return {
+        'statusCode': status_code,
+        'headers': {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+            'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
+            'Content-Type': 'application/json'
+        },
+        'body': json.dumps(body)
+    }
+
+def update_dynamodb_item(contact_id, agent_arn, agent_name):
+    update_expression = "SET #agentARN = :agent_arn, #agt = :agent_name"
+    expression_attribute_names = {
+        '#agentARN': 'AgentARN',
+        '#agt': 'Agent'
+    }
+    expression_attribute_values = {
+        ':agent_arn': agent_arn,
+        ':agent_name': agent_name
+    }
+    return table.update_item(
+        Key={'ContactID': contact_id},
+        UpdateExpression=update_expression,
+        ExpressionAttributeNames=expression_attribute_names,
+        ExpressionAttributeValues=expression_attribute_values,
+        ReturnValues="UPDATED_NEW"
+    )
+
+def rollback_dynamodb_update(contact_id):
+    try:
+        table.update_item(
+            Key={'ContactID': contact_id},
+            UpdateExpression="REMOVE #agentARN, #agt",
+            ExpressionAttributeNames={
+                '#agentARN': 'AgentARN',
+                '#agt': 'Agent'
+            },
+            ReturnValues="UPDATED_NEW"
+        )
+        logger.info(f"Successfully rolled back DynamoDB update for contact {contact_id}")
+    except Exception as e:
+        logger.error(f"Failed to rollback DynamoDB update for contact {contact_id}: {e}")
+
+def update_contact_attributes(contact_id):
+    return connect_client.update_contact_attributes(
+        InstanceId=INSTANCE_ID,
+        InitialContactId=contact_id,
+        Attributes={
+            'CherryPicked': 'Yes'
+        }
+    )
+
+def rollback_connect_attributes(contact_id):
+    try:
+        connect_client.update_contact_attributes(
+            InstanceId=INSTANCE_ID,
+            InitialContactId=contact_id,
+            Attributes={
+                'CherryPicked': 'No'
+            }
+        )
+        logger.info(f"Successfully rolled back Connect attributes for contact {contact_id}")
+    except Exception as e:
+        logger.error(f"Failed to rollback Connect attributes for contact {contact_id}: {e}")
+
+def set_agent_status(agent_arn, status_id):
+    """Sets the agent's status using Connect API"""
+    try:
+        connect_client.put_user_status(
+            InstanceId=INSTANCE_ID,
+            UserId=agent_arn.split('/')[-1],  # Assuming ARN format ends with User ID
+            AgentStatusId=status_id
+        )
+        logger.info(f"Set agent {agent_arn} status to {status_id}")
+        return True
+    except connect_client.exceptions.InvalidRequestException as e:
+        message = str(e)
+        if "User already in requested status" in message:
+            logger.warning(f"Agent {agent_arn} already in status {status_id}, continuing")
+            return False  # Indicates no update was necessary
+        else:
+            logger.error(f"Failed to set agent status: {message}")
+            raise
+    except Exception as e:
+        logger.error(f"Unexpected error while setting agent status: {e}")
+        raise
+
+def lambda_handler(event, context):
+    logger.info(f"Received event: {event}")
+
+    if event.get('httpMethod') == 'OPTIONS':
+        return create_response(200, {})
+
+    try:
+        body = json.loads(event.get('body', '{}'))
+        contact_id = body.get('ContactID')
+        agent_arn = body.get('AgentARN')
+        agent_name = body.get('AgentName')
+
+        if not contact_id:
+            logger.error("Contact ID is required")
+            return create_response(400, {'error': 'Contact ID is required'})
+
+        if not agent_arn:
+            logger.error("Agent ARN is required")
+            return create_response(400, {'error': 'Agent ARN is required'})
+
+        if not INSTANCE_ID or not STATUS_ID or not AVAIL_ID:
+            logger.error("Required environment variables are missing")
+            return create_response(500, {'error': 'Environment variables are not properly set'})
+
+        dynamodb_updated = False
+        connect_updated = False
+
+        try:
+            dynamodb_response = update_dynamodb_item(contact_id, agent_arn, agent_name)
+            dynamodb_updated = True
+
+            connect_response = update_contact_attributes(contact_id)
+            connect_updated = True
+
+            # Set temporary status
+            status_changed = set_agent_status(agent_arn, STATUS_ID)
+            time.sleep(4.1)  # Wait 4100 milliseconds
+            # Revert to available status
+            set_agent_status(agent_arn, AVAIL_ID)
+
+        except Exception as e:
+            if dynamodb_updated and not connect_updated:
+                rollback_dynamodb_update(contact_id)
+            elif connect_updated and not dynamodb_updated:
+                rollback_connect_attributes(contact_id)
+            raise Exception(f"Update failed: {str(e)}")
+
+        return create_response(200, {'message': 'Update successful'})
+
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse JSON body: {e}")
+        return create_response(400, {'error': 'Invalid JSON format'})
+    except Exception as e:
+        logger.error(f"Error updating contact: {e}")
+        return create_response(500, {'error': f"Error updating contact: {str(e)}"})
