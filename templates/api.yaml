@@ -67,6 +67,7 @@ Resources:
                   - connect:UpdateContactAttributes
                   - connect:GetContactAttributes
                   - connect:StartOutboundVoiceContact
+                  - connect:PutUserStatus
                   - connect:StopContact
                 Resource: !Sub arn:aws:connect:${AWS::Region}:${AWS::AccountId}:instance/${ConnectInstanceId}/*
         - PolicyName: APIgatewayAccess
