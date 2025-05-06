@@ -116,3 +116,9 @@ In production environments, customers typically hear different messages and musi
 3. **Clean Up Amazon Connect:**
 
    - Remove imported flows and third-party applications from Amazon Connect.
+
+
+## COMING SOON....
+This solution has up to a 5 second delay between cherry picking and receiving the call. In this time the user could receive a queue call.
+With the new Optional Status Handling logic you can handle this by allowing the cherry pick while the user is in a Custom status or the solution will move he user to a custom status for 4.1 seconds while we are awaiting the cherry pick logic to run, removing or limiting the possibility of a queue call coming in.
+Step by step instructions on implementing this logic coming soon.
