@@ -127,13 +127,13 @@ This section will walk you through adding a custom status and Updating the **Upd
 1. Create a new *CherryPicking* Status
 - In the Amazon Connect Admin portal Navigate to *Users* and then *Agent status*
 - Click *Add new agent status* and give the status a Name and Description and click *Save*
-- Make sure the status is CCP enabled  ![AgentStatusCCPenabled](Optional Status Handling/AgentStatusList.PNG)
-- Now click on the new status you created and copy the Status ID and save it for later   ![CherryPickingSTATUSID](Optional Status Handling/CherryPickingStatus.PNG)
-- Repeat th abov steps the Available Status ID and save it for later use as wel ![AvailableSTATUSID](Optional Status Handling/Avil_ID.PNG)
+- Make sure the status is CCP enabled  ![AgentStatusCCPenabled](Optional%20Status%20Handling/AgentStatusList.PNG)
+- Now click on the new status you created and copy the Status ID and save it for later   ![CherryPickingSTATUSID](Optional%20Status%20Handling/CherryPickingStatus.PNG)
+- Repeat th abov steps the Available Status ID and save it for later use as wel ![AvailableSTATUSID](Optional%20Status%20Handling/Avil_ID.PNG)
 - Now open the AWS console and navigate to the **Lambda** service
 - Locate the *UpdateContactCherryPicked* Lambda and navigate to *Configuration* and then *Enviroment variables*
-- Add 2 new variables **AVAIL_ID** and **STATUS_ID** and set there values that your saved above  ![EnvioVar](Optional Status Handling/UpdateCintactCherryPick-Enviromental-variables.PNG)
-- Now go back to the *Code* section of the lambda and copy and paste in the [Updated Lambda logic](Optional Status Handling/UpdateContactCherryPick - Update with Status Handling Lambda.txt)
+- Add 2 new variables **AVAIL_ID** and **STATUS_ID** and set there values that your saved above  ![EnvioVar](Optional%20Status%20Handling/UpdateCintactCherryPick-Enviromental-variables.PNG)
+- Now go back to the *Code* section of the lambda and copy and paste in the [Updated Lambda logic](Optional%20Status%20Handling/UpdateContactCherryPick%20-%20Update%20with%20Status%20Handling%20Lambda.txt)
 - Now publish the Lambda and you are ready to test.
 
   This logic will now place you in the new status (CherryPicking for this scenario) for 4.1 seconds then move you to available.  If you are already in the custom (CherryPicking) status it will just move you availble after 4.1 seconds when you cherry pick a call.
