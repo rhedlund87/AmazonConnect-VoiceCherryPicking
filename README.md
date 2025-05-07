@@ -118,7 +118,22 @@ In production environments, customers typically hear different messages and musi
    - Remove imported flows and third-party applications from Amazon Connect.
 
 
-## COMING SOON....
-This solution has up to a 5 second delay between cherry picking and receiving the call. In this time the user could receive a queue call.
-With the new Optional Status Handling logic you can handle this by allowing the cherry pick while the user is in a Custom status or the solution will move he user to a custom status for 4.1 seconds while we are awaiting the cherry pick logic to run, removing or limiting the possibility of a queue call coming in.
-Step by step instructions on implementing this logic coming soon.
+## UPDATE 5/6/2025  - OPTIONAL Status Management
+
+With this solution there is a delay in the cherry picking check. This means a user, if available, could get a call from a queue when expecting a cherry picked call.
+You can work around this by placing yourself in a custom status, then changing to available 5 seconds after cherry picking, but this is a manual and repetitive task.
+This section will walk you through adding a custom status and Updating the **UpdateContactCherryPicked** lambda to perfrm some status management.
+
+1. Create a new *CherryPicking* Status
+- In the Amazon Connect Admin portal Navigate to *Users* and then *Agent status*
+- Click *Add new agent status* and give the status a Name and Description and click *Save*
+- Make sure the status is CCP enabled  ![AgentStatusCCPenabled](Optional Status Handling/AgentStatusList.PNG)
+- Now click on the new status you created and copy the Status ID and save it for later   ![CherryPickingSTATUSID](Optional Status Handling/CherryPickingStatus.PNG)
+- Repeat th abov steps the Available Status ID and save it for later use as wel ![AvailableSTATUSID](Optional Status Handling/Avil_ID.PNG)
+- Now open the AWS console and navigate to the **Lambda** service
+- Locate the *UpdateContactCherryPicked* Lambda and navigate to *Configuration* and then *Enviroment variables*
+- Add 2 new variables **AVAIL_ID** and **STATUS_ID** and set there values that your saved above  ![EnvioVar](Optional Status Handling/UpdateCintactCherryPick-Enviromental-variables.PNG)
+- Now go back to the *Code* section of the lambda and copy and paste in the [Updated Lambda logic](Optional Status Handling/UpdateContactCherryPick - Update with Status Handling Lambda.txt)
+- Now publish the Lambda and you are ready to test.
+
+  This logic will now place you in the new status (CherryPicking for this scenario) for 4.1 seconds then move you to available.  If you are already in the custom (CherryPicking) status it will just move you availble after 4.1 seconds when you cherry pick a call.
